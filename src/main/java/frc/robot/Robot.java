@@ -20,7 +20,6 @@ import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
@@ -132,7 +131,7 @@ public RelativeEncoder getRightEncoder(){
     return m_IMU.getRate();
   }
   public Pose2d getPose(){
-    return m_Odometry.getPoseMeters();
+    return m_Odometry.getPoseMeters();  // TODO: Convert this to feets cuz americans have no idea what meters are 
   }
 // -------------------------------------------------------------------------------------------------------------------
 
@@ -222,12 +221,24 @@ public RelativeEncoder getRightEncoder(){
    double leftPosition = leftEncoder.getPosition() * kDriveTick2Feet;
    double rightPosition = rightEncoder.getPosition() * kDriveTick2Feet;
    double distance = (leftPosition + rightPosition) /2;
+  // Bang-bang Controlled Auto
+  // Benifits: drives the robot a certain distance no matter what
+  // issue: doesn't slow down the robot before it stops which makes the robot drive more than what we need
+  /*  if(distance < 16){
+  //   drive.tankDrive(0.6, 0.6);
+  //  }else{
+  //   drive.tankDrive(0, 0);
+  }*/ 
 
-   if(distance < 16){
-    drive.tankDrive(0.6, 0.6);
-   }else{
-    drive.tankDrive(0, 0);
-   }
+  // PID (Proportional Integral Derivative) controlled Auto
+  // Benefits: Slows down when the robot is near the setpoint
+  // Stops Really accurityly on the setpoint.
+  // Completes the movement very fast
+  // Equation is Motor Output = kP * error
+  // kP is a fixed number that is different from one robot to another
+  // error is the distance between the setPoint and where the robot is located
+
+
   }
 
 

@@ -1,0 +1,47 @@
+// Pseudocode for autonomous period
+
+// Step 1: Deposit Cube
+depositCube();
+
+// Step 2: Drive forward until gyro angle is positive
+while (gyroAngle() < 0) {
+    driveForward();
+}
+
+// Step 3: Drive forward until gyro angle is negative
+while (gyroAngle() > 0) {
+    driveForward();
+}
+
+// Step 4: Drive forward until gyro angle is 0
+while (gyroAngle() != 0) {
+    if (driveDistance() > 60) { // Check if driven distance exceeds 5ft (60 inches)
+        break; // Exit the loop and cancel auto
+    }
+    driveForward();
+}
+
+// Step 4.5: If driving more than 5ft cancel auto
+if (driveDistance() > 60) {
+    cancelAuto();
+}
+
+// Step 5: Drive forward 4 inches
+driveDistance(4);
+
+// Step 6: Drive backward until gyro angle is negative
+while (gyroAngle() > 0) {
+    driveBackward();
+}
+
+// Step 7: Auto balance algorithm
+while (true) {
+    if (gyroAngle() < 0) {
+        driveBackward();
+    } else if (gyroAngle() > 0) {
+        driveForward();
+    } else {
+        stopDriving();
+        break;
+    }
+}
