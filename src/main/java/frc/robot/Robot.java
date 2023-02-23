@@ -39,7 +39,6 @@ public class Robot extends TimedRobot {
    */
 
   // variable to store the start time
-  private double startTime; // IMPORTANT
 
    // Driving MOTORS
   private CANSparkMax leftFrontMotor = new CANSparkMax(3, CANSparkMaxLowLevel.MotorType.kBrushless);
@@ -160,7 +159,6 @@ public RelativeEncoder getRightEncoder(){
 // robotInit() runs once when the robot powers on.
   @Override
   public void robotInit() {
-    startTime = Timer.getFPGATimestamp();
   // inverted settings
     rightControllerGroup.setInverted(true);
     leftControllerGroup.setInverted(false);
