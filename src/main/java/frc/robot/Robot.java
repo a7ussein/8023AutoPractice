@@ -259,7 +259,7 @@ public RelativeEncoder getRightEncoder(){
     // drive controll
     double power = -driveController.getRawAxis(1);  // for this axis: up is negative, down is positive
     double turn = driveController.getRawAxis(4); 
-    drive.arcadeDrive(power * 0.8, turn * 0.3); //slow speed (power) down to 60% and turning speed (turn) to 30% for better controllability
+    drive.arcadeDrive(power * 0.8, turn * 0.3); //slow speed (power) down to 80% and turning speed (turn) to 30% for better controllability
 
     // intake Raising Controll
     double raisingPower = intakeController.getRawAxis(1);
