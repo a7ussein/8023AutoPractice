@@ -5,12 +5,13 @@
 
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.FeedbackDevice;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
-import com.fasterxml.jackson.databind.ser.std.RawSerializer;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.CANSparkMax.IdleMode;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -46,6 +47,9 @@ public class Robot extends TimedRobot {
   private CANSparkMax rightFrontMotor = new CANSparkMax(2, CANSparkMaxLowLevel.MotorType.kBrushless);
   private CANSparkMax rightBackMotor = new CANSparkMax(1, CANSparkMaxLowLevel.MotorType.kBrushless);
   
+  // Intake Motors 
+  private WPI_VictorSPX rollerMotor = new WPI_VictorSPX(5);
+  private WPI_VictorSPX raisingMotor = new WPI_VictorSPX(6);
 
   MotorControllerGroup leftControllerGroup = new MotorControllerGroup(leftFrontMotor, leftBackMotor);
   MotorControllerGroup rightControllerGroup = new MotorControllerGroup(rightFrontMotor, rightBackMotor);
@@ -53,9 +57,7 @@ public class Robot extends TimedRobot {
   DifferentialDrive drive = new DifferentialDrive(leftControllerGroup, rightControllerGroup);
 
   private DifferentialDriveOdometry m_Odometry;
-  // Intake Motors 
-  private WPI_VictorSPX rollerMotor = new WPI_VictorSPX(5);
-  private WPI_VictorSPX raisingMotor = new WPI_VictorSPX(6);
+
 
 // Encoder Methods:
   // Encoder reset:
@@ -153,6 +155,9 @@ public RelativeEncoder getRightEncoder(){
     RelativeEncoder rightEncoder = rightFrontMotor.getEncoder();
 
 
+
+
+// robotInit() runs once when the robot powers on.
   @Override
   public void robotInit() {
     startTime = Timer.getFPGATimestamp();
@@ -163,7 +168,7 @@ public RelativeEncoder getRightEncoder(){
     raisingMotor.setInverted(false);
 
     //init Encoders
-    raisingMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, 0, 10);
+    // raisingMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, 0, 10);
 
     // slave setup
     rightBackMotor.follow(rightFrontMotor);
@@ -174,13 +179,21 @@ public RelativeEncoder getRightEncoder(){
     leftEncoder.setPosition(0);
     rightEncoder.setPosition(0);
 
-    // set encoder boundreis for intake
-    // raisingMotor.configReverseSoftLimitThreshold(0/k)
+    // set encoder boundreis for intake raising Motor if we have an encoder for it, Don't forget to initalize the encoder
+    // using raisingMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder(orWhatever Encoder we have), 0, 10); then uncomment the below code.
+    // raisingMotor.configReverseSoftLimitThreshold((int)(0/ kRaisingTick2Feet), 10);
+    // raisingMotor.configForwardSoftLimitThreshold((int) (175 / kRaisingTick2Feet), 10);
+    // raisingMotor.configReverseSoftLimitEnable(true, 10);
+    // raisingMotor.configForwardSoftLimitEnable(true, 10);
 
     // deadBand
     drive.setDeadband(0.05);
   }
 
+
+
+
+  // Continuasly run no matter what state the robot is in
   @Override
   public void robotPeriodic() {
     SmartDashboard.putNumber("Left encoder value in meters", getLeftEncoderPosition());
@@ -193,52 +206,107 @@ public RelativeEncoder getRightEncoder(){
 
   }
 
+
+
+
   @Override
-  public void autonomousInit() {}
+  public void autonomousInit() {
+    resetEncoders();
+    enableDrivingMotors(true);
+    enableIntakeMotors(true);
+  }
+
+
+
 
   @Override
   public void autonomousPeriodic() {
-    double time = Timer.getFPGATimestamp(); // gets the time in seconds
-    if(time - startTime < 3){
-      leftFrontMotor.set(0.6);
-      leftBackMotor.set(0.6);
-      rightFrontMotor.set(-0.6);
-      rightBackMotor.set(-0.6);
-    }else{
-      leftFrontMotor.set(0);
-      leftBackMotor.set(0);
-      rightFrontMotor.set(0);
-      rightBackMotor.set(0);
-    }
+   double leftPosition = leftEncoder.getPosition() * kDriveTick2Feet;
+   double rightPosition = rightEncoder.getPosition() * kDriveTick2Feet;
+   double distance = (leftPosition + rightPosition) /2;
+
+   if(distance < 16){
+    drive.tankDrive(0.6, 0.6);
+   }else{
+    drive.tankDrive(0, 0);
+   }
   }
 
+
+
+
   @Override
-  public void teleopInit() {}
+  public void teleopInit() {
+    enableDrivingMotors(true);
+    enableIntakeMotors(true);
+  }
+
+
+
+
 
   @Override
   public void teleopPeriodic() {
-    double power = -driveController.getRawAxis(1) * 0.8;  // for this axis: up is negative, down is positive
-    double turn = driveController.getRawAxis(4) * 0.3;
-     // slow speed down to 60% and turning speed to 30% for better controllability
-    // // deadband
-    // if(Math.abs(power) < 0.05){
-    //   power = 0;
-    // }
-    // if(Math.abs(turn) < 0.05){
-    //   turn = 0;
-    // }
-    drive.arcadeDrive(power, turn);
+    // drive controll
+    double power = -driveController.getRawAxis(1);  // for this axis: up is negative, down is positive
+    double turn = driveController.getRawAxis(4);// slow speed down to 60% and turning speed to 30% for better controllability
+    drive.arcadeDrive(power * 0.8, turn * 0.3);
 
-    // intake control
-    // double intakeRas
+    // intake Raising Controll
+    double raisingPower = intakeController.getRawAxis(1);
+    // deadBand 
+    if(Math.abs(raisingPower) < 0.05){
+      raisingPower = 0;
+    }
+    raisingMotor.set(raisingPower* 0.5);
+    // intake Rollers control
+    double rollersPower = 0;
+    // press A if you want to pick up an object, and press Y if you want to shoot the object
+    if(intakeController.getAButton() == true){
+      rollersPower = 1;
+    }else if(intakeController.getYButton() == true){
+      rollersPower = -1;
+    }
+
+    rollerMotor.set(ControlMode.PercentOutput, rollersPower);
   }
 
+
+
+
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    enableDrivingMotors(false);
+    enableIntakeMotors(false);
+  }
 
   @Override
   public void disabledPeriodic() {}
 
+  private void enableDrivingMotors(boolean on){
+    IdleMode dMotormode;
+    if(on){
+      dMotormode = IdleMode.kBrake;
+    }else{
+      dMotormode = IdleMode.kCoast;
+    }
+    leftFrontMotor.setIdleMode(dMotormode);
+    leftBackMotor.setIdleMode(dMotormode); 
+    rightFrontMotor.setIdleMode(dMotormode);
+    rightBackMotor.setIdleMode(dMotormode); 
+  }
+  private void enableIntakeMotors(boolean on){
+    NeutralMode iMotorMode;
+    if(on){
+      iMotorMode = NeutralMode.Brake;
+    }else{
+      iMotorMode = NeutralMode.Coast;
+    }
+
+    raisingMotor.setNeutralMode(iMotorMode);
+    rollerMotor.setNeutralMode(iMotorMode);
+  }
+// Didn't use them
   @Override
   public void testInit() {}
 
