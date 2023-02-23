@@ -232,7 +232,7 @@ public RelativeEncoder getRightEncoder(){
 
   // PID (Proportional Integral Derivative) controlled Auto
   // Benefits: Slows down when the robot is near the setpoint
-  // Stops Really accurityly on the setpoint.
+  // Stops Really accuritly on the setpoint.
   // Completes the movement very fast
   // Equation is Motor Output = kP * error
   // kP is a fixed number that is different from one robot to another
@@ -258,8 +258,8 @@ public RelativeEncoder getRightEncoder(){
   public void teleopPeriodic() {
     // drive controll
     double power = -driveController.getRawAxis(1);  // for this axis: up is negative, down is positive
-    double turn = driveController.getRawAxis(4);// slow speed down to 60% and turning speed to 30% for better controllability
-    drive.arcadeDrive(power * 0.8, turn * 0.3);
+    double turn = driveController.getRawAxis(4); 
+    drive.arcadeDrive(power * 0.8, turn * 0.3); //slow speed (power) down to 60% and turning speed (turn) to 30% for better controllability
 
     // intake Raising Controll
     double raisingPower = intakeController.getRawAxis(1);
