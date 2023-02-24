@@ -20,6 +20,7 @@ import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
@@ -55,6 +56,10 @@ public class Robot extends TimedRobot {
   DifferentialDrive drive = new DifferentialDrive(leftControllerGroup, rightControllerGroup);
 
   private DifferentialDriveOdometry m_Odometry;
+
+  // Unit Conversion
+  private final double kDriveTick2Feet = 1.0/4096*6*Math.PI/12;
+  private final double kRaisingTick2Feet = 360.0 / 512 * 26 / 42 * 18 / 60 * 18 / 84;
 
 
 // Encoder Methods:
@@ -143,10 +148,6 @@ public RelativeEncoder getRightEncoder(){
   private XboxController driveController = new XboxController(0);
   private XboxController intakeController = new XboxController(1);
 
-  // Unit Conversion
-  private final double kDriveTick2Feet = 1.0/4096*6*Math.PI/12;
-  private final double kRaisingTick2Feet = 360.0 / 512 * 26 / 42 * 18 / 60 * 18 / 84;
-
 
   // Encoders 
     RelativeEncoder leftEncoder = leftFrontMotor.getEncoder();
@@ -173,8 +174,7 @@ public RelativeEncoder getRightEncoder(){
 
 
     // reset encoders to zero
-    leftEncoder.setPosition(0);
-    rightEncoder.setPosition(0);
+    resetEncoders();
 
     // set encoder boundreis for intake raising Motor if we have an encoder for it, Don't forget to initalize the encoder
     // using raisingMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder(orWhatever Encoder we have), 0, 10); then uncomment the below code.
@@ -211,10 +211,21 @@ public RelativeEncoder getRightEncoder(){
     resetEncoders();
     enableDrivingMotors(true);
     enableIntakeMotors(true);
+    errorSum = 0;
+    lastError = 0;
+    lastTimeStamp = Timer.getFPGATimestamp();
   }
 
 
+  final double kP = 0.5; // needs to be calculated, MAKE SURE YOU DON'T HAVE THE ROBOT ON THE GROUND UNTIL YOU FIGURE IT OUT!
+  final double kI = 0.5; // needs to be calculated, MAKE SURE YOU DON'T HAVE THE ROBOT ON THE GROUND UNTIL YOU FIGURE IT OUT!
+  final double kD = 0.1; // needs to be calculated, MAKE SURE YOU DON'T HAVE THE ROBOT ON THE GROUND UNTIL YOU FIGURE IT OUT!
+  final double iLimit =  1;
 
+  double setPoint = 0;
+  double errorSum = 0;
+  double lastTimeStamp = 0;
+  double lastError = 0;
 
   @Override
   public void autonomousPeriodic() {
@@ -237,8 +248,33 @@ public RelativeEncoder getRightEncoder(){
   // Equation is Motor Output = kP * error
   // kP is a fixed number that is different from one robot to another
   // error is the distance between the setPoint and where the robot is located
+  if(driveController.getAButton()){
+    setPoint = 10;
+  }else if (driveController.getYButton()){
+    setPoint = 0;
+  }
+   // get sensor position and convert it into feet
+   double sensorPosition = leftEncoder.getPosition() * kDriveTick2Feet;
 
+   // calculations 
+   double error = setPoint - sensorPosition;
+   double dt = Timer.getFPGATimestamp() - lastTimeStamp;
+   
+   if(Math.abs(error) < iLimit){
+     errorSum += errorSum * dt;
+   }
 
+   double errorRate = (error - lastError) /dt;
+   double outputSpeed = kP * error + kI * errorSum + kD * errorRate;
+   // double outputSpeed = kP * error + KI * errorSum;
+
+   // output to motors 
+   leftControllerGroup.set(outputSpeed);
+   rightControllerGroup.set(-outputSpeed);
+
+   // update last - variables 
+   lastTimeStamp = Timer.getFPGATimestamp();
+   lastError = error;
   }
 
 
