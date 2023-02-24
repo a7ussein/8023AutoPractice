@@ -248,9 +248,9 @@ public RelativeEncoder getRightEncoder(){
   // Equation is Motor Output = kP * error
   // kP is a fixed number that is different from one robot to another
   // error is the distance between the setPoint and where the robot is located
-  if(driveController.getAButton()){
+  if(driveController.getBButton()){
     setPoint = 10;
-  }else if (driveController.getYButton()){
+  }else if (driveController.getXButton()){
     setPoint = 0;
   }
    // get sensor position and convert it into feet
